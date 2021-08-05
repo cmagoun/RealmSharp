@@ -32,10 +32,20 @@ namespace RealmSharp.Screens
             _data = gameData;
 
             _mouseMgr.MouseScroll += MouseScroll;
+            _mouseMgr.MouseDrag += MouseDrag;
             _keyMgr.KeyDown += KeyDown;
             _keyMgr.KeyPressed += KeyPressed;
 
             base.Initialize(gameData, services);
+        }
+
+        private void MouseDrag(object sender, MouseStateArgs args)
+        {
+            var delta = new Vector2(
+                (float)(args.X-args.OldX),
+                (float)(args.Y-args.OldY));
+
+            _camera.MoveCamera(delta * -1);
         }
 
         private void KeyPressed(object sender, KeyStateArgs args)
@@ -59,17 +69,6 @@ namespace RealmSharp.Screens
         private void MouseScroll(object sender, int delta)
         {
             _camera.AdjustZoom(delta / 1200f);
-        }
-
-        public override void Update(MRData gameData, GameTime gameTime)
-        {
-            var mpos = _mouseMgr.GetPosition();
-            if(mpos.X < 20) _camera.MoveCamera(Vector.Left * CAM_SPEED);
-            if(mpos.Y < 20) _camera.MoveCamera(Vector.Up * CAM_SPEED);
-            if(mpos.X > _camera.ViewportWidth - 20) _camera.MoveCamera(Vector.Right * CAM_SPEED);
-            if(mpos.Y > _camera.ViewportHeight - 20) _camera.MoveCamera(Vector.Down * CAM_SPEED);
-
-            base.Update(gameData, gameTime);
         }
 
         public override void Draw(MRData gameData, SpriteBatch sb, GameTime gameTime)

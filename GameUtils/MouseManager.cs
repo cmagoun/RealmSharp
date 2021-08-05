@@ -23,9 +23,18 @@ namespace GameUtils
         public MouseHandler MouseRightClick;
         public MouseHandler MouseCenterClick;
 
+        public MouseHandler MouseDrag;
+        public MouseHandler MouseDragEnd;
+
+        private int _oldWorldX;
+        private int _oldWorldY;
+
+        private bool _dragging;
+
         public void Update(GameTime gameTime)
         {
             _currentState = Mouse.GetState();
+
             var pos = GetPosition();
             var wpos = GetWorldPosition();
 
@@ -33,19 +42,43 @@ namespace GameUtils
             var y = (int) pos.Y;
             var wx = (int) wpos.X;
             var wy = (int) wpos.Y;
-            
-            //Do I need more events? What about DRAG?
-            if(HasScrolled()) MouseScroll?.Invoke(this, _currentState.ScrollWheelValue - _oldState.ScrollWheelValue);
-            if(HasMouseMoved()) MouseMove?.Invoke(this, new MouseStateArgs(x, y, wx, wy));
-            
-            if(IsButtonDown(MouseButton.Left)) MouseDown?.Invoke(this, new MouseStateArgs(x, y, wx, wy));
-            if(IsButtonReleased(MouseButton.Left)) MouseUp?.Invoke(this, new MouseStateArgs(x, y, wx, wy));
-            if(IsButtonClicked(MouseButton.Left)) MouseClick?.Invoke(this, new MouseStateArgs(x, y, wx, wy));
-            
-            if(IsButtonClicked(MouseButton.Right)) MouseRightClick?.Invoke(this, new MouseStateArgs(x, y, wx, wy));
-            if(IsButtonClicked(MouseButton.Center)) MouseCenterClick?.Invoke(this, new MouseStateArgs(x, y, wx, wy));
-            
+
+            if (HasScrolled()) MouseScroll?.Invoke(this, _currentState.ScrollWheelValue - _oldState.ScrollWheelValue);
+
+            if (_dragging)
+            {
+                if(HasMouseMoved()) MouseDrag?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                if (!IsButtonDown(MouseButton.Left))
+                {
+                    _dragging = false;
+                    MouseDragEnd?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                }
+            }
+
+            if (HasMouseMoved())
+            {
+                if (IsButtonDown(MouseButton.Left))
+                {
+                    MouseDrag?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY ));
+                    _dragging = true;
+                }
+                else
+                {
+                    MouseMove?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                }
+            }
+            else
+            {
+                if (IsButtonDown(MouseButton.Left)) MouseDown?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                if (IsButtonReleased(MouseButton.Left)) MouseUp?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                if (IsButtonClicked(MouseButton.Left)) MouseClick?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                if (IsButtonClicked(MouseButton.Right)) MouseRightClick?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+                if (IsButtonClicked(MouseButton.Center)) MouseCenterClick?.Invoke(this, new MouseStateArgs(x, y, wx, wy, _oldState.X, _oldState.Y, _oldWorldX, _oldWorldY));
+            }
+
             _oldState = _currentState;
+            _oldWorldX = wx;
+            _oldWorldY = wy;
         }
 
         public Vector2 GetPosition()
@@ -77,7 +110,7 @@ namespace GameUtils
         private bool IsButtonDown(MouseButton button)
         {
             var (bstate, ostate) = GetButtonStates(button);
-            return bstate == ButtonState.Pressed && ostate == ButtonState.Released;
+            return bstate == ButtonState.Pressed;
         }
 
         private bool IsButtonReleased(MouseButton button)
@@ -113,24 +146,36 @@ namespace GameUtils
     {
         public int X { get; set; }
         public int Y { get; set; }
+        public int OldX { get; set; }
+        public int OldY { get; set; }
         
         public int WorldX { get; set; }
         public int WorldY { get; set; }
+        public int OldWorldX { get; set; }
+        public int OldWorldY { get; set; }
 
-        public MouseStateArgs(int x, int y)
+        // public MouseStateArgs(int x, int y, int oldX, int oldY)
+        // {
+        //     X = x;
+        //     Y = y;
+        //     OldX = oldX;
+        //     OldY = oldY;
+        //     WorldX = x;
+        //     WorldY = y;
+        //     OldWorldX = oldX;
+        //     OldWorldY = oldY;
+        // }
+
+        public MouseStateArgs(int x, int y, int wx, int wy, int oldX, int oldY, int oldWx, int oldWy)
         {
             X = x;
             Y = y;
-            WorldX = x;
-            WorldY = y;
-        }
-
-        public MouseStateArgs(int x, int y, int wx, int wy)
-        {
-            X = x;
-            Y = y;
+            OldX = oldX;
+            OldY = oldY;
             WorldX = wx;
             WorldY = wy;
+            OldWorldX = oldWx;
+            OldWorldY = oldWy;
         }
     }
 }
